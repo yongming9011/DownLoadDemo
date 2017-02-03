@@ -2,25 +2,39 @@ package com.zhangym.downloaddemo;
 
 import android.Manifest;
 import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
 import com.yanzhenjie.permission.AndPermission;
 import com.yanzhenjie.permission.PermissionListener;
 
+import java.io.File;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    private long downloadId;
+    private static final String TAG = "zhangym";
+    private MyReceiver mMyReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mMyReceiver = new MyReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        registerReceiver(mMyReceiver, filter);
 
         findViewById(R.id.btn_start_download).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -30,7 +44,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     AndPermission.with(MainActivity.this)
                             .requestCode(100)
-                            .permission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            .permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission
+                                    .READ_EXTERNAL_STORAGE)
                             .send();
                 }
             }
@@ -50,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "xiaoboshi.apk");
         // 设置允许系统扫描到下载的文件
         request.allowScanningByMediaScanner();
-        long id = manager.enqueue(request);
+        downloadId = manager.enqueue(request);
     }
 
     private PermissionListener mPermissionListener = new PermissionListener() {
@@ -69,5 +84,37 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[]
             grantResults) {
         AndPermission.onRequestPermissionsResult(requestCode, permissions, grantResults, mPermissionListener);
+    }
+
+    private class MyReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            long completeDownloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            if (downloadId == completeDownloadId) {
+                if (intent.getAction().equals(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) {
+                    installApk(MainActivity.this);
+                }
+            }
+        }
+    }
+
+    private void installApk(Context context) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(new File(Environment.getExternalStorageDirectory() +
+                    "/download/xiaoboshi.apk")), "application/vnd.android.package-archive");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "安装失败");
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(mMyReceiver);
     }
 }
