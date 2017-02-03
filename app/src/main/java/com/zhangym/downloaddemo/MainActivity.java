@@ -41,15 +41,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (AndPermission.hasPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE,
                         Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                    // 判断文件是否存在
-                    File file = new File(Environment.getExternalStorageDirectory() + "/download/xiaoboshi.apk");
-                    if (file.exists() && file.isFile()) {
-                        file.delete();
-                        startDownload();
-                    } else {
-                        startDownload();
-                    }
-
+                    startDownload();
                 } else {
                     AndPermission.with(MainActivity.this)
                             .requestCode(100)
