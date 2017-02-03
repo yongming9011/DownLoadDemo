@@ -39,8 +39,17 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_start_download).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (AndPermission.hasPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    startDownload();
+                if (AndPermission.hasPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    // 判断文件是否存在
+                    File file = new File(Environment.getExternalStorageDirectory() + "/download/xiaoboshi.apk");
+                    if (file.exists() && file.isFile()) {
+                        file.delete();
+                        startDownload();
+                    } else {
+                        startDownload();
+                    }
+
                 } else {
                     AndPermission.with(MainActivity.this)
                             .requestCode(100)
@@ -52,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 下载
+     */
     private void startDownload() {
         DownloadManager manager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         Uri uri = Uri.parse("http://apk.hiapk.com/appdown/com.zhangym.search_tools");
@@ -99,6 +111,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 自动安装
+     *
+     * @param context
+     */
     private void installApk(Context context) {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
