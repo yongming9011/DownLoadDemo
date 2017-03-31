@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                     "xiaoboshi.apk");
             if (file.exists()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                Uri uri = null;
+                Uri uri;
                 // 判断若版本大于23，则必须使用FileProvider的方式，不然下载完毕后不会自动安装
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
                     intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
