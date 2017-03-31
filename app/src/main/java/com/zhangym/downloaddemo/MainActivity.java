@@ -7,9 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -97,24 +99,36 @@ public class MainActivity extends AppCompatActivity {
             long completeDownloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
             if (downloadId == completeDownloadId) {
                 if (intent.getAction().equals(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) {
-                    installApk(MainActivity.this);
+                    installApk();
                 }
             }
         }
     }
 
     /**
-     * 自动安装
-     *
-     * @param context
+     * 下载完成后自动安装
      */
-    private void installApk(Context context) {
+    private void installApk() {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.fromFile(new File(Environment.getExternalStorageDirectory() +
-                    "/download/xiaoboshi.apk")), "application/vnd.android.package-archive");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
+            File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "xiaoboshi.apk");
+            if (file.exists()) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                Uri uri = null;
+                // 判断若版本大于23，则必须使用FileProvider的方式，不然下载完毕后不会自动安装
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    uri = FileProvider.getUriForFile(MainActivity.this, getApplicationContext().getPackageName()
+                            + ".provider", file);
+                } else {
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    uri = Uri.fromFile(file);
+                }
+                intent.setDataAndType(uri, "application/vnd.android.package-archive");
+                startActivity(intent);
+            } else {
+                Toast.makeText(MainActivity.this, "下载文件不完整！", Toast.LENGTH_SHORT).show();
+            }
         } catch (Exception e) {
             Log.e(TAG, "安装失败");
             e.printStackTrace();
