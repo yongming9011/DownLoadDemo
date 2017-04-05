@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 动态注册广播接收器，接收下载完成广播
         mMyReceiver = new MyReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
@@ -41,22 +42,26 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_start_download).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (AndPermission.hasPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                    startDownload();
-                } else {
-                    AndPermission.with(MainActivity.this)
-                            .requestCode(100)
-                            .permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission
-                                    .READ_EXTERNAL_STORAGE)
-                            .send();
+                // 若当前的系统版本大于等于6.0，则使用动态权限管理
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    // 判断是否获得了内存卡的读写权限，若获取到了则开始下载，若未获取权限则申请
+                    if (AndPermission.hasPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                            Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                        startDownload();
+                    } else {
+                        AndPermission.with(MainActivity.this)
+                                .requestCode(100)
+                                .permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission
+                                        .READ_EXTERNAL_STORAGE)
+                                .send();
+                    }
                 }
             }
         });
     }
 
     /**
-     * 下载
+     * 下载apk文件
      */
     private void startDownload() {
         DownloadManager manager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
@@ -67,10 +72,11 @@ public class MainActivity extends AppCompatActivity {
         // 设置在WIFI跟手机网络环境下下载
         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request
                 .NETWORK_MOBILE);
-        // 设置下载位置为外部公共的下载目录，文件名为xiaoboshi.apk，并且可以被Media Scanner扫描到
+        // 设置下载位置为外部公共的下载目录，文件名为xiaoboshi.apk
         request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "xiaoboshi.apk");
-        // 设置允许系统扫描到下载的文件
+        // 设置允许系统扫描到下载的文件，即可以被Media Scanner扫描到（这句话的意思是打开文件管理的时候可以看到这个apk文件）
         request.allowScanningByMediaScanner();
+        // 获取该下载文件的downloadId
         downloadId = manager.enqueue(request);
     }
 
@@ -97,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             long completeDownloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            // 下载完成后接收系统广播，判断下载的id，若正好是我们自己下载的apk文件，然后判断对应的action，若匹配则启动安装
             if (downloadId == completeDownloadId) {
                 if (intent.getAction().equals(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) {
                     installApk();
@@ -115,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
             if (file.exists()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 Uri uri;
-                // 判断若版本大于23，则必须使用FileProvider的方式，不然下载完毕后不会自动安装
+                // 判断若版本大于23，则必须使用FileProvider的方式，不然下载完毕后不会启动自动安装
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
                     intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     uri = FileProvider.getUriForFile(MainActivity.this, getApplicationContext().getPackageName()
@@ -138,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // 反注册广播接收器
         unregisterReceiver(mMyReceiver);
     }
 }
