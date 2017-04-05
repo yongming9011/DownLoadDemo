@@ -25,7 +25,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private long downloadId;
-    private static final String TAG = "zhangym";
+    private static final String TAG = "zhangym@MainActivity";
     private MyReceiver mMyReceiver;
 
     @Override
