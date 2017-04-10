@@ -125,8 +125,7 @@ public class MainActivity extends AppCompatActivity {
                 // 判断若版本大于23，则必须使用FileProvider的方式，不然下载完毕后不会启动自动安装
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
                     intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    uri = FileProvider.getUriForFile(MainActivity.this, getApplicationContext().getPackageName()
-                            + ".provider", file);
+                    uri = FileProvider.getUriForFile(MainActivity.this,"com.zhangym.downloaddemo.fileprovider", file);
                 } else {
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     uri = Uri.fromFile(file);
